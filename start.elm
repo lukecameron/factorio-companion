@@ -4,7 +4,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
 import String
 import Dict exposing (Dict)
-import Json.Decode exposing (Decoder, int, string, dict, object5, object4, object3, maybe, float, tuple2, (:=), at, oneOf)
+import Json.Decode exposing (Decoder, int, string, dict, object6, object5, object4, object3, maybe, float, tuple2, (:=), at, oneOf)
 import Json.Decode as Json
 import Result exposing (..)
 import Basics
@@ -24,22 +24,23 @@ decodeIngredients =
 
 decodeRecipe : Decoder RecipeJson
 decodeRecipe =
-  object5 RecipeJson
+  object6 RecipeJson
     ("name" := string)
-    ("result" := maybe string)
+    (maybe ("result" := string))
+    (maybe ("results" := decodeResults))
     ("ingredients" := decodeIngredients)
     ("type" := string)
     (maybe ("energy_required" := float))
 
-attemptDecodeBasicIngredient : Decoder (Maybe (String, Int))
+attemptDecodeBasicIngredient : Decoder (Maybe (String, Float))
 attemptDecodeBasicIngredient =
-  maybe (tuple2 (,) string int)
+  maybe (tuple2 (,) string float)
 
 
-constructTypedIngredient : String -> String -> Int -> IngredientJson
+constructTypedIngredient : String -> String -> Float -> IngredientJson
 constructTypedIngredient n t a = Typed (TypedIngredientJson n t a)
 
-constructBasicIngredient : String -> Int -> IngredientJson
+constructBasicIngredient : String -> Float -> IngredientJson
 constructBasicIngredient n a = Basic (n, a)
 
 -- ingredients are either a tuple2 or an object3.
@@ -48,12 +49,23 @@ constructBasicIngredient n a = Basic (n, a)
 decodeIngredient : Decoder IngredientJson
 decodeIngredient = attemptDecodeBasicIngredient `Json.andThen` \attempt ->
   case attempt of
-    Just _         -> tuple2  constructBasicIngredient string int
+    Just _         -> tuple2  constructBasicIngredient string float
     Nothing        -> object3 constructTypedIngredient
                               ("name" := string)
                               ("type" := string)
-                              ("amount" := int)
+                              ("amount" := float)
 
+decodeResults = Json.list decodeResult
+type alias ComplexResult = {
+  name : String,
+  resultType : String,
+  amount : Float
+}
+
+decodeResult = object3 ComplexResult
+                       ("name" := string)
+                       ("type" := string)
+                       ("amount" := float)
 
 decodeAllRecipes : Decoder (Dict String (Maybe RecipeJson))
 decodeAllRecipes = dict (maybe decodeRecipe)
@@ -61,14 +73,15 @@ decodeAllRecipes = dict (maybe decodeRecipe)
 type alias RecipeJson = {
   name : String,
   result : Maybe String,
+  results : Maybe (List ComplexResult),
   ingredients : List IngredientJson,
   recipeType : String,
   energy_required : Maybe Float
 }
 
-type alias TypedIngredientJson = { name : String, recipeType : String, amount : Int }
+type alias TypedIngredientJson = { name : String, recipeType : String, amount : Float }
 type IngredientJson =
-  Basic (String, Int) | Typed TypedIngredientJson
+  Basic (String, Float) | Typed TypedIngredientJson
 
 -- UPDATE
 type Msg = JSONChanged String
