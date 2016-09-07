@@ -1,5 +1,7 @@
+port module App exposing (..)
+
 import Html exposing (Html, Attribute, text, div, input, pre)
-import Html.App exposing (beginnerProgram)
+import Html.App exposing (beginnerProgram, program)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
 import String
@@ -11,7 +13,20 @@ import Basics
 
 
 main =
-  beginnerProgram { model = "", view = view, update = update }
+  program {
+    init = ("", Cmd.none),
+    view = view,
+    update = update,
+    subscriptions = subscriptions
+  }
+
+
+-- SUBSCRIPTIONS
+port recipes : (String -> msg) -> Sub msg
+
+subscriptions : String -> Sub Msg
+subscriptions mod =
+  recipes JSONChanged
 
 -- PROCESS
 decodeCount : Decoder Float
@@ -84,9 +99,10 @@ type IngredientJson =
   Basic (String, Float) | Typed TypedIngredientJson
 
 -- UPDATE
-type Msg = JSONChanged String
-update : Msg -> String -> String
-update (JSONChanged content) oldContent = content
+type Msg =
+  JSONChanged String
+update : Msg -> String -> (String, Cmd Msg)
+update (JSONChanged content) oldContent = (content, Cmd.none)
 
 -- VIEW
 isNothing : Maybe a -> Bool

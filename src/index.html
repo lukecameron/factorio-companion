@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Factorio Companion</title>
+  <script type="text/javascript" src="elm.js"></script>
+  <script type="text/javascript" src="recipes.js"></script>
+</head>
+
+<body>
+  <div id="elm-container"></div>
+  <script type="text/javascript">
+    var elmContainer = document.getElementById('elm-container');
+    console.log(Elm.App);
+    var elmApp = Elm.App.embed(elmContainer);
+    elmApp.ports.recipes.send(window.recipes);
+  </script>
+</body>
+
+
+</html>
